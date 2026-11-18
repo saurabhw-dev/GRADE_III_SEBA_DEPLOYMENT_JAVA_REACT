@@ -47,6 +47,6 @@ jobs:
 
 
     - name: Confirm JAR Copy to EC2 Server
-      run: echo "JAR file Copied successfullys"
+      run: echo "JAR file Copied successfully"
 
       
