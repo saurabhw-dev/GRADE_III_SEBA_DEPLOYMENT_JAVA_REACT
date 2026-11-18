@@ -68,7 +68,7 @@ jobs:
           docker build -t sebagradethreefour-app .
 
           echo "🚀 Running container..."
-          docker run -d --name sebagradethreefour-container -p 8081:80 sebagradethreefour-app
+          docker run -d --name sebagradethreefour-container -p 80:80 sebagradethreefour-app
 
          
 
