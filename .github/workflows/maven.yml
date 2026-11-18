@@ -49,4 +49,16 @@ jobs:
     - name: Confirm JAR Copy to EC2 Server
       run: echo "JAR file Copied successfully"
 
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          cd /home/ubuntu/SEBA_GRADE_III_IV_UAT
+        
+          echo "🛑 Stopping & removing old container...."
+          docker rm -f sebagradethreefour-container
+
       
