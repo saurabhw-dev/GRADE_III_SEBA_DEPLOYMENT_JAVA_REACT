@@ -9,7 +9,7 @@ public class ReactRouterController {
 	 @RequestMapping(value = {
 	            "/",
 	            "/seba",
-	            "/register"
+	            "/registe"
 	    })
 	    public String redirect() {
 	        return "forward:/index.html";
