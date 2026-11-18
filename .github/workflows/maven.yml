@@ -32,3 +32,6 @@ jobs:
 
     - name: Confirm JAR creation
       run: echo "JAR file created successfully"
+
+    - name: List target directory
+      run: ls -lh target
