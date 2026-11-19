@@ -8,8 +8,9 @@ public class ReactRouterController {
 	
 	 @RequestMapping(value = {
 	            "/",
-	            "/seba",
-	            "/register"
+	            "/slrc",
+	            "/slrc/register",
+	            "/slrc/Login"
 	    })
 	    public String redirect() {
 	        return "forward:/index.html";
