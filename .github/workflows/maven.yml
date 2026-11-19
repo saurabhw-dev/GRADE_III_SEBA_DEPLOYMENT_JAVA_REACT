@@ -32,3 +32,41 @@ jobs:
 
     - name: Confirm JAR creation
       run: echo "JAR file created successfully.."
+
+    - name: List target directory
+      run: ls -lh target
+
+    - name: Copy JAR to EC2 (/home/ubuntu/SEBA_GRADE_III_IV_UAT)
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "target/GRADE_III_IV_SEBA-0.0.1-SNAPSHOT.jar"
+        target: "/home/ubuntu/SEBA_GRADE_III_IV_UAT/"
+
+    - name: Confirm JAR Copy to EC2 Server
+      run: echo "JAR file Copied successfully"
+
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          cd /home/ubuntu/SEBA_GRADE_III_IV_UAT
+
+          echo "🛑 Stopping & removing old container...."
+          docker rm -f sebagradethreefour-container
+
+          echo "🧹 Removing old image..."
+          docker rmi sebagradethreefour-app
+
+          echo "📦 Building new Docker image.."
+          docker build -t sebagradethreefour-app .
+
+          echo "🚀 Running container..."
+          docker run -d --name sebagradethreefour-container -p 80:80 sebagradethreefour-app
+
+
