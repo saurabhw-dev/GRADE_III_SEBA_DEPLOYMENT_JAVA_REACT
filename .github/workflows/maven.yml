@@ -10,9 +10,9 @@ name: Java CI with Maven
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -45,7 +45,6 @@ jobs:
         source: "target/GRADE_III_IV_SEBA-0.0.1-SNAPSHOT.jar"
         target: "/home/ubuntu/SEBA_GRADE_III_IV_UAT/"
 
-
     - name: Confirm JAR Copy to EC2 Server
       run: echo "JAR file Copied successfully"
 
@@ -57,7 +56,7 @@ jobs:
         key: ${{ secrets.EC2_KEY }}
         script: |
           cd /home/ubuntu/SEBA_GRADE_III_IV_UAT
-        
+
           echo "🛑 Stopping & removing old container...."
           docker rm -f sebagradethreefour-container
 
@@ -70,6 +69,4 @@ jobs:
           echo "🚀 Running container..."
           docker run -d --name sebagradethreefour-container -p 80:80 sebagradethreefour-app
 
-         
 
-      
