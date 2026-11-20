@@ -142,26 +142,94 @@ public class DigiLockerController {
 					.body(Map.of("message", "Unable to fetch issued documents"));
 		}
 	}
-	
+
 	@GetMapping("/eaadhaar")
 	public ResponseEntity<?> getEaadhaar(HttpSession session) {
 
+		String accessToken = (String) session.getAttribute("DIGILOCKER_ACCESS_TOKEN");
+
+		if (accessToken == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Please authenticate with DigiLocker first.");
+		}
+
+		try {
+			Map<String, Object> result = digiLockerService.getEaadhaarDetails(accessToken);
+
+			return ResponseEntity.ok(result);
+
+		} catch (Exception e) {
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unable to retrieve e-Aadhaar.");
+		}
+	}
+
+	@GetMapping("/driving-license")
+	public ResponseEntity<?> getDrivingLicense(HttpSession session) {
+		System.out.println("driving-license");
+		String accessToken = (String) session.getAttribute("DIGILOCKER_ACCESS_TOKEN");
+
+		if (accessToken == null) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Please authenticate with DigiLocker first.");
+		}
+
+		try {
+
+			Map<String, Object> result = digiLockerService.getIssuedDocuments(accessToken);
+
+			return ResponseEntity.ok(result);
+
+		} catch (Exception e) {
+
+			e.printStackTrace();
+
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+					.body("Unable to retrieve Driving Licence documents.");
+		}
+	}
+
+	/*@GetMapping("/driving-license-xml")
+	public ResponseEntity<?> getDrivingLicenseXml(HttpSession session) {
+		System.out.println("driving-license-xml");
+		String accessToken = (String) session.getAttribute("DIGILOCKER_ACCESS_TOKEN");
+
+		if (accessToken == null) {
+
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Please authenticate with DigiLocker first.");
+		}
+
+		try {
+
+			Map<String, Object> result = digiLockerService.getDrivingLicenseXml(accessToken);
+
+			return ResponseEntity.ok(result);
+
+		} catch (Exception e) {
+
+			e.printStackTrace();
+
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+		}
+	}*/
+	
+	@GetMapping("/pan-card")
+	public ResponseEntity<?> getPanCard(HttpSession session) {
+		System.out.println("pan-card");
 	    String accessToken = (String) session.getAttribute("DIGILOCKER_ACCESS_TOKEN");
 
 	    if (accessToken == null) {
 	        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-	                .body("Please authenticate with DigiLocker first.");
+	                .body("DigiLocker session expired. Please login again.");
 	    }
 
 	    try {
-	        Map<String, Object> result =
-	                digiLockerService.getEaadhaarDetails(accessToken);
+	        Map<String, Object> response =
+	                digiLockerService.getPanCardXml(accessToken);
 
-	        return ResponseEntity.ok(result);
+	        return ResponseEntity.ok(response);
 
 	    } catch (Exception e) {
+
 	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-	                .body("Unable to retrieve e-Aadhaar.");
+	                .body(e.getMessage());
 	    }
 	}
 

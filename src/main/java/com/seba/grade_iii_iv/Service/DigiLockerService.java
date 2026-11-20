@@ -11,5 +11,7 @@ public interface DigiLockerService {
 	public Map<String, Object> getUserDetails(String accessToken);
 	public Map<String, Object> getIssuedDocuments(String accessToken);
 	public Map<String, Object> getEaadhaarDetails(String accessToken) throws Exception;
+	//public Map<String, Object> getDrivingLicenseXml(String accessToken);
+	public Map<String, Object> getPanCardXml(String accessToken);
 
 }

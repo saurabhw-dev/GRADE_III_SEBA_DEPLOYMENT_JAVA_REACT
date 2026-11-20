@@ -20,6 +20,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.util.UriUtils;
 
 @Service
 public class DigiLockerServiceImplementation implements DigiLockerService {
@@ -50,6 +51,9 @@ public class DigiLockerServiceImplementation implements DigiLockerService {
 
 	@Value("${digilocker.eaadhaar-url}")
 	private String eaadhaarUrl;
+
+	@Value("${digilocker.xml-url}")
+	private String xmlUrl;
 
 	private final RestTemplate restTemplate;
 
@@ -142,71 +146,215 @@ public class DigiLockerServiceImplementation implements DigiLockerService {
 		return restTemplate.exchange(issuedUrl, HttpMethod.GET, request, Map.class).getBody();
 	}
 
-	/*@Override
-	public Map<String, Object> getEaadhaarDetails(String accessToken) {
+	/*
+	 * @Override public Map<String, Object> getEaadhaarDetails(String accessToken) {
+	 * 
+	 * System.out.println("getEaadhaarDetails"); HttpHeaders headers = new
+	 * HttpHeaders(); headers.setBearerAuth(accessToken);
+	 * 
+	 * HttpEntity<String> entity = new HttpEntity<>(headers);
+	 * 
+	 * ResponseEntity<String> response = restTemplate.exchange(eaadhaarUrl,
+	 * HttpMethod.GET, entity, String.class);
+	 * 
+	 * Map<String, Object> result = new HashMap<>();
+	 * 
+	 * result.put("xml", response.getBody()); result.put("hmac",
+	 * response.getHeaders().getFirst("hmac"));
+	 * 
+	 * return result; }
+	 */
 
-		System.out.println("getEaadhaarDetails");
-		HttpHeaders headers = new HttpHeaders();
-		headers.setBearerAuth(accessToken);
-
-		HttpEntity<String> entity = new HttpEntity<>(headers);
-
-		ResponseEntity<String> response = restTemplate.exchange(eaadhaarUrl, HttpMethod.GET, entity, String.class);
-
-		Map<String, Object> result = new HashMap<>();
-
-		result.put("xml", response.getBody());
-		result.put("hmac", response.getHeaders().getFirst("hmac"));
-
-		return result;
-	}*/
-	
 	@Override
 	public Map<String, Object> getEaadhaarDetails(String accessToken) {
 
-	    System.out.println("getEaadhaarDetails called");
+		System.out.println("getEaadhaarDetails called");
 
-	    try {
+		try {
 
-	        if (accessToken == null || accessToken.isEmpty()) {
-	            throw new RuntimeException("DigiLocker access token is missing.");
+			if (accessToken == null || accessToken.isEmpty()) {
+				throw new RuntimeException("DigiLocker access token is missing.");
+			}
+
+			System.out.println("e-Aadhaar URL: " + eaadhaarUrl);
+
+			HttpHeaders headers = new HttpHeaders();
+			headers.setBearerAuth(accessToken);
+			headers.setAccept(List.of(MediaType.APPLICATION_XML));
+
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+
+			ResponseEntity<String> response = restTemplate.exchange(eaadhaarUrl, HttpMethod.GET, entity, String.class);
+
+			Map<String, Object> result = new HashMap<>();
+
+			result.put("xml", response.getBody());
+			result.put("hmac", response.getHeaders().getFirst("hmac"));
+			result.put("status", response.getStatusCode().value());
+
+			return result;
+
+		} catch (HttpStatusCodeException e) {
+
+			System.out.println("DigiLocker HTTP Status: " + e.getStatusCode());
+			System.out.println("DigiLocker Error: " + e.getResponseBodyAsString());
+
+			throw e;
+
+		} catch (Exception e) {
+
+			e.printStackTrace();
+			throw new RuntimeException("e-Aadhaar request failed: " + e.getMessage(), e);
+		}
+	}
+
+	/*@Override
+	public Map<String, Object> getDrivingLicenseXml(String accessToken) {
+
+		try {
+
+			// Step 1: Get candidate's issued documents
+			Map<String, Object> documents = getIssuedDocuments(accessToken);
+
+			List<Map<String, Object>> items = (List<Map<String, Object>>) documents.get("items");
+
+			if (items == null || items.isEmpty()) {
+				throw new RuntimeException("No issued documents found.");
+			}
+
+			// Step 2: Find Driving Licence
+			Map<String, Object> drivingLicense = null;
+
+			for (Map<String, Object> item : items) {
+
+				if ("DRVLC".equalsIgnoreCase(String.valueOf(item.get("doctype")))) {
+
+					drivingLicense = item;
+					break;
+				}
+			}
+
+			if (drivingLicense == null) {
+				throw new RuntimeException("Driving Licence not found.");
+			}
+
+			// Step 3: Get document URI
+			String uri = String.valueOf(drivingLicense.get("uri"));
+
+			// Step 4: Check XML availability
+			Object mimeObject = drivingLicense.get("mime");
+
+			boolean xmlAvailable = false;
+
+			if (mimeObject instanceof List<?>) {
+
+				List<?> mimeTypes = (List<?>) mimeObject;
+
+				xmlAvailable = mimeTypes.contains("application/xml");
+			}
+
+			if (!xmlAvailable) {
+				throw new RuntimeException(
+						"XML is not available for this Driving Licence. " + "Available formats: " + mimeObject);
+			}
+
+			// Step 5: Prepare DigiLocker request
+			HttpHeaders headers = new HttpHeaders();
+
+			headers.setBearerAuth(accessToken);
+			headers.setAccept(List.of(MediaType.APPLICATION_XML));
+
+			HttpEntity<String> entity = new HttpEntity<>(headers);
+
+			// Encode URI as one URL path segment
+			String encodedUri = UriUtils.encodePathSegment(uri, StandardCharsets.UTF_8);
+
+			String requestUrl = xmlUrl + encodedUri;
+
+			// Step 6: Call DigiLocker XML API
+			ResponseEntity<String> response = restTemplate.exchange(requestUrl, HttpMethod.GET, entity, String.class);
+
+			// Step 7: Prepare response
+			Map<String, Object> result = new HashMap<>();
+
+			result.put("documentType", "DRVLC");
+			result.put("documentName", drivingLicense.get("name"));
+			result.put("issuer", drivingLicense.get("issuer"));
+			result.put("xml", response.getBody());
+			result.put("contentType", response.getHeaders().getContentType());
+			result.put("hmac", response.getHeaders().getFirst("hmac"));
+
+			return result;
+
+		} catch (HttpStatusCodeException e) {
+
+			System.out.println("DigiLocker HTTP Status: " + e.getStatusCode());
+			System.out.println("DigiLocker Error: " + e.getResponseBodyAsString());
+
+			throw new RuntimeException("DigiLocker XML API failed: " + e.getStatusCode(), e);
+
+		} catch (Exception e) {
+
+			e.printStackTrace();
+
+			throw new RuntimeException("Unable to retrieve Driving Licence XML: " + e.getMessage(), e);
+		}
+	}*/
+	
+	@Override
+	public Map<String, Object> getPanCardXml(String accessToken) {
+
+	    Map<String, Object> documents = getIssuedDocuments(accessToken);
+
+	    List<Map<String, Object>> items =
+	            (List<Map<String, Object>>) documents.get("items");
+
+	    Map<String, Object> panDocument = null;
+
+	    for (Map<String, Object> item : items) {
+
+	        if ("PANCR".equalsIgnoreCase(
+	                String.valueOf(item.get("doctype")))) {
+
+	            panDocument = item;
+	            break;
 	        }
-
-	        System.out.println("e-Aadhaar URL: " + eaadhaarUrl);
-
-	        HttpHeaders headers = new HttpHeaders();
-	        headers.setBearerAuth(accessToken);
-	        headers.setAccept(List.of(MediaType.APPLICATION_XML));
-
-	        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-	        ResponseEntity<String> response = restTemplate.exchange(
-	                eaadhaarUrl,
-	                HttpMethod.GET,
-	                entity,
-	                String.class
-	        );
-
-	        Map<String, Object> result = new HashMap<>();
-
-	        result.put("xml", response.getBody());
-	        result.put("hmac", response.getHeaders().getFirst("hmac"));
-	        result.put("status", response.getStatusCode().value());
-
-	        return result;
-
-	    } catch (HttpStatusCodeException e) {
-
-	        System.out.println("DigiLocker HTTP Status: " + e.getStatusCode());
-	        System.out.println("DigiLocker Error: " + e.getResponseBodyAsString());
-
-	        throw e;
-
-	    } catch (Exception e) {
-
-	        e.printStackTrace();
-	        throw new RuntimeException("e-Aadhaar request failed: " + e.getMessage(), e);
 	    }
+
+	    if (panDocument == null) {
+	        throw new RuntimeException(
+	                "PAN Card document (PANCR) not found in DigiLocker.");
+	    }
+
+	    String mime = String.valueOf(panDocument.get("mime"));
+
+	    if (!mime.contains("application/xml")) {
+	        throw new RuntimeException(
+	                "XML is not available for this PAN document. Available format: " + mime);
+	    }
+
+	    String uri = String.valueOf(panDocument.get("uri"));
+
+	    String url = xmlUrl + UriUtils.encodePathSegment(uri, StandardCharsets.UTF_8);
+
+	    HttpHeaders headers = new HttpHeaders();
+	    headers.setBearerAuth(accessToken);
+
+	    HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+	    ResponseEntity<String> response = restTemplate.exchange(
+	            url,
+	            HttpMethod.GET,
+	            entity,
+	            String.class
+	    );
+
+	    Map<String, Object> result = new HashMap<>();
+	    result.put("doctype", "PANCR");
+	    result.put("mime", mime);
+	    result.put("xml", response.getBody());
+
+	    return result;
 	}
 
 }
