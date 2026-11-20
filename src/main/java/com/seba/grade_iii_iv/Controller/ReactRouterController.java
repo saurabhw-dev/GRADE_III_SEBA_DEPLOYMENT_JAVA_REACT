@@ -10,7 +10,8 @@ public class ReactRouterController {
 	            "/",
 	            "/slrc",
 	            "/slrc/register",
-	            "/slrc/Login"
+	            "/slrc/Login",
+	            "/slrc/register"
 	    })
 	    public String redirect() {
 	        return "forward:/index.html";
